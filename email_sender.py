@@ -1,13 +1,16 @@
 import csv
-import smtplib
 import os
+import pandas as pd
+import numpy as np
+import random
+import smtplib
 
 from dotenv import load_dotenv
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
-def send_email(match: str, receiver_email: str):
+def send_email(match: str, receiver_email: str, address: str):
     load_dotenv()
     # Sender and recipient
     sender_email = os.getenv("EMAIL_ADDRESS")
@@ -15,7 +18,7 @@ def send_email(match: str, receiver_email: str):
 
     # Email content
     subject = "2025 Portal Santa Match"
-    body = f"""Hello Brother, \n\nYou have {match} for portal santa. \n\n- Eric "The Fiji Santa"
+    body = f"""Hello Brother, \n\nYou have {match} for portal santa. There address is {address} \n\n- Eric "The Fiji Santa"
     """
 
     # Create MIME message
@@ -36,15 +39,41 @@ def send_email(match: str, receiver_email: str):
         print(f"Error: {e}")
 
 
-file_path = "Portal Santa Matcher - 2024 Matches.csv"
+def create_derangement(lst):
+    """
+    Create a random derangement of a list (no element matches its original position).
+    """
+    while True:
+        shuffled = lst[:]
+        np.random.shuffle(shuffled)
+        if all(original != shuffled[i] for i, original in enumerate(lst)):
+            return shuffled
 
-with open(file_path, mode='r') as file:
-    csv_reader = csv.DictReader(file)
-    # each row is an ordered dict
-    for row in csv_reader:
-        if "Preferred E-mail" in row and "Matches" in row:
-            email = row["Preferred E-mail"]
-            match_name = row["Matches"]
-            send_email(match_name, email)
-        else:
-            print(f"-----INVALID ROW ERROR---- {row} ")
+
+def create_matches() -> pd.DataFrame:
+    # Step 1: Read the CSV
+    # Replace with your CSV file path
+    file_path = "Grad Portal Santa - 2024 Grad Portal Santa.csv"
+    df = pd.read_csv(file_path)
+    df = df.drop(index=0).reset_index(drop=True)
+    df["Match"] = create_derangement(df["Name"].tolist())
+
+    # Display the resulting DataFrame
+    print(df)
+
+    result = input("Does this look ok to send the emails(y/n)?")
+    if result == 'y':
+        for row in df:
+            if "Preferred E-mail" in row and "Matches" in row and "Address" in row:
+                email = row["Preferred E-mail"]
+                match_name = row["Matches"]
+                address = row["Address"]
+
+                send_email(match_name, email, address)
+            else:
+                print(f"-----INVALID ROW ERROR---- {row} ")
+    else:
+        print("I have failed...")
+
+
+create_matches()
